@@ -1,11 +1,12 @@
 {
-  "name": "gojangee-quick-check",
+  "name": "instant-mark",
   "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build && node scripts/prepare_sites_build.mjs",
+    "build:pages": "vite build --mode github-pages",
     "preview": "vite preview"
   },
   "dependencies": {
