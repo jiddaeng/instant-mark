@@ -7,7 +7,7 @@
   --green: #087a59;
   --green-dark: #056246;
   --error: #c44539;
-  --content-width: 640px;
+  --content-width: 720px;
 }
 
 * {
@@ -45,66 +45,15 @@ button {
   margin: 0 auto;
 }
 
-.site-header {
-  display: flex;
-  min-height: 72px;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--line);
-}
-
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  color: inherit;
-  text-decoration: none;
-}
-
-.brand-mark {
-  display: grid;
-  width: 36px;
-  height: 36px;
-  place-items: center;
-  color: #fff;
-  background: var(--ink);
-  border-radius: 10px;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 19px;
-  font-weight: 700;
-}
-
-.brand-copy {
-  display: grid;
-  gap: 1px;
-}
-
-.brand-copy strong {
-  font-size: 14px;
-  letter-spacing: -0.02em;
-}
-
-.brand-copy small,
-.range-badge {
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 600;
-}
-
-.range-badge {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 11px;
-}
-
 .utility-dock {
   position: relative;
   z-index: 20;
   display: flex;
-  min-height: 42px;
-  padding-top: 8px;
+  min-height: 58px;
+  padding-top: 12px;
   align-items: flex-start;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 8px;
 }
 
 .utility-panel {
@@ -113,16 +62,16 @@ button {
 
 .utility-panel > summary {
   display: flex;
-  height: 34px;
-  padding: 0 10px;
+  height: 42px;
+  padding: 0 14px;
   align-items: center;
   gap: 7px;
   color: var(--muted);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 9px;
+  border-radius: 11px;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 750;
   list-style: none;
 }
@@ -140,7 +89,7 @@ button {
 
 .utility-panel > summary small {
   color: inherit;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -149,10 +98,10 @@ button {
   top: calc(100% + 6px);
   right: 0;
   width: min(410px, calc(100vw - 24px));
-  padding: 12px;
+  padding: 16px;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 14px;
   box-shadow: 0 12px 34px rgba(24, 33, 31, 0.12);
 }
 
@@ -164,15 +113,15 @@ button {
 
 #book-select {
   width: 100%;
-  height: 44px;
+  height: 50px;
   padding: 0 36px 0 12px;
   overflow: hidden;
   color: var(--ink);
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 12px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -189,14 +138,14 @@ button {
 }
 
 .book-add-button {
-  height: 44px;
+  height: 50px;
   padding: 0 10px;
   color: var(--ink);
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 12px;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 750;
 }
 
@@ -217,7 +166,7 @@ button {
 #book-message {
   margin: 7px 0 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -238,7 +187,7 @@ button {
   background: transparent;
   border: 0;
   cursor: pointer;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 750;
 }
 
@@ -271,7 +220,7 @@ button {
   overflow-y: auto;
   color: var(--muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.6;
 }
 
@@ -295,19 +244,19 @@ button {
 main {
   width: min(100%, var(--content-width));
   margin: 0 auto;
-  padding-top: 18px;
+  padding-top: 12px;
 }
 
 .form-label-row {
   display: flex;
-  min-height: 28px;
+  min-height: 34px;
   align-items: flex-start;
   justify-content: space-between;
 }
 
 .form-label-row label {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -317,7 +266,7 @@ main {
   background: transparent;
   border: 0;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 750;
 }
 
@@ -328,18 +277,18 @@ main {
 
 .input-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 90px;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 108px;
+  gap: 10px;
 }
 
 .number-control {
   display: grid;
-  grid-template-columns: 50px minmax(0, 1fr) 50px;
-  height: 56px;
+  grid-template-columns: 64px minmax(0, 1fr) 64px;
+  height: 68px;
   overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 14px;
   transition:
     border-color 150ms ease,
     box-shadow 150ms ease;
@@ -356,7 +305,7 @@ main {
   background: transparent;
   border: 0;
   cursor: pointer;
-  font-size: 23px;
+  font-size: 30px;
   line-height: 1;
 }
 
@@ -385,7 +334,7 @@ main {
   background: transparent;
   border: 0;
   outline: 0;
-  font-size: 21px;
+  font-size: 28px;
   font-weight: 750;
   text-align: center;
 }
@@ -400,14 +349,14 @@ main {
 }
 
 .submit-button {
-  height: 56px;
-  padding: 0 14px;
+  height: 68px;
+  padding: 0 18px;
   color: #fff;
   background: var(--green);
   border: 0;
-  border-radius: 12px;
+  border-radius: 14px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 800;
   transition: background 150ms ease;
 }
@@ -422,30 +371,30 @@ main {
 }
 
 .form-message {
-  min-height: 20px;
-  margin: 7px 0 0;
+  min-height: 24px;
+  margin: 9px 0 0;
   color: var(--error);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
 }
 
 .number-keypad {
   display: grid;
-  width: calc(100% - 98px);
+  width: 100%;
   grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-  margin-top: 2px;
+  gap: 8px;
+  margin-top: 4px;
 }
 
 .keypad-key {
-  height: 52px;
+  height: 66px;
   padding: 0;
   color: var(--ink);
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 13px;
   cursor: pointer;
-  font-size: 18px;
+  font-size: 24px;
   font-weight: 700;
   touch-action: manipulation;
   user-select: none;
@@ -465,26 +414,26 @@ main {
 
 .keypad-action {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .result-section {
   display: grid;
-  gap: 8px;
-  margin-top: 18px;
+  gap: 12px;
+  margin-top: 22px;
   animation: reveal 220ms ease both;
 }
 
 .media-frame {
   position: relative;
   display: grid;
-  min-height: 112px;
-  padding: 24px;
+  min-height: 132px;
+  padding: 28px;
   place-items: center;
   overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 14px;
 }
 
 .solution-media {
@@ -535,7 +484,7 @@ main {
 .media-error {
   margin: 0;
   color: var(--error);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   text-align: center;
 }
@@ -543,16 +492,16 @@ main {
 .solution-toggle {
   display: flex;
   width: 100%;
-  height: 48px;
-  padding: 0 14px;
+  height: 58px;
+  padding: 0 18px;
   align-items: center;
   justify-content: space-between;
   color: var(--ink);
   background: transparent;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 14px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 750;
   transition:
     color 150ms ease,
@@ -638,23 +587,8 @@ main {
     width: calc(100% - 24px);
   }
 
-  .site-header {
-    min-height: 64px;
-  }
-
-  .brand-mark {
-    width: 32px;
-    height: 32px;
-    border-radius: 9px;
-    font-size: 17px;
-  }
-
-  .brand-copy strong {
-    font-size: 13px;
-  }
-
   main {
-    padding-top: 14px;
+    padding-top: 10px;
   }
 
   .book-select-row {
@@ -666,22 +600,23 @@ main {
   }
 
   .input-row {
-    grid-template-columns: minmax(0, 1fr) 76px;
+    grid-template-columns: minmax(0, 1fr) 88px;
+    gap: 8px;
   }
 
   .number-control {
-    grid-template-columns: 44px minmax(0, 1fr) 44px;
-    height: 52px;
-  }
-
-  .number-keypad {
-    width: calc(100% - 84px);
+    grid-template-columns: 52px minmax(0, 1fr) 52px;
+    height: 64px;
   }
 
   .submit-button {
-    height: 52px;
-    padding-inline: 8px;
-    font-size: 13px;
+    height: 64px;
+    padding-inline: 10px;
+    font-size: 16px;
+  }
+
+  .keypad-key {
+    height: 62px;
   }
 
   .media-frame {
