@@ -4,6 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node build.mjs"
+    "dev": "vite",
+    "build": "vite build && node scripts/prepare_sites_build.mjs",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "pdfjs-dist": "^5.4.149"
+  },
+  "devDependencies": {
+    "vite": "^7.1.3"
   }
 }

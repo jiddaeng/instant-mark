@@ -4,6 +4,7 @@ tmp/
 venv/
 dist/
 answer_sheets/
+images/
 output/
-scripts/
-requirements.txt
+data.json
+node_modules/

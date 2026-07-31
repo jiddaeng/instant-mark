@@ -1,55 +1,76 @@
 # 고쟁이 수학 빠른 채점 및 웹 해설기
 
-문항 번호를 입력하면 정답 이미지를 바로 표시하고, 필요할 때 해설 이미지를
-열어 볼 수 있는 정적 웹 애플리케이션입니다.
+문항 번호를 입력하면 답지 PDF에서 해당 정답 영역만 그때그때 렌더링하고,
+필요할 때 해설을 펼쳐 볼 수 있는 정적 웹 애플리케이션입니다.
 
-## 웹앱 실행
+## 답지 목록
 
-`data.json`을 불러와야 하므로 HTML 파일을 직접 열지 말고 정적 웹 서버로
-실행합니다.
+- `고쟁이 공통수학 2`가 기본 답지로 들어 있습니다.
+- 화면의 `PDF 추가`로 다른 답지를 목록에 넣을 수 있습니다.
+- 추가한 PDF 원본과 메타데이터는 서버로 전송하지 않고 현재 브라우저의
+  IndexedDB에 저장합니다.
+- 마지막으로 선택한 답지는 `localStorage`에 기억하므로 같은 사이트에 다시
+  접속해도 그대로 선택됩니다.
+- 저장한 답지는 `PDF 보기`로 열거나 목록에서 삭제할 수 있습니다.
+- PDF를 추가하면 페이지별 문항 머리표와 2단 배치를 브라우저에서 분석하고,
+  진행 과정과 실패 원인을 `PDF 연결 로그`에 표시합니다.
+- 브라우저의 사이트 데이터를 지우면 직접 추가한 답지도 함께 삭제됩니다.
+
+기본 고쟁이 답지는 포함된 문항 좌표를 바로 사용합니다. 추가한 PDF가 같은
+고쟁이 3자리 문항 번호·2단 해설 형식이면 브라우저가 문항 좌표를 자동으로
+만들어 빠른 채점 기능을 활성화하고, 생성된 좌표도 IndexedDB에 저장합니다.
+다시 접속할 때는 PDF 전체를 재분석하지 않습니다. 다른 형식이라 자동 연결에
+실패하면 PDF 원본은 그대로 보관되며 `연결 시도` 버튼으로 다시 분석할 수
+있습니다.
+
+## 동작 방식
+
+- `problem-index.json`에는 문항별 PDF 페이지와 자르기 좌표만 저장합니다.
+- 처음 조회한 정답/해설은 브라우저가 PDF에서 이미지로 만듭니다.
+- 생성된 이미지는 브라우저의 IndexedDB에 저장합니다.
+- 같은 브라우저에서 다시 조회하면 PDF를 재처리하지 않고 저장된 이미지를
+  사용합니다.
+- 해설은 `해설 보기`를 누를 때만 생성합니다.
+
+기존의 `data.json`과 사전 생성된 `images/` 파일은 앱에서 사용하지 않습니다.
+
+## 로컬 실행
+
+Node.js 패키지를 설치하고 개발 서버를 실행합니다.
 
 ```powershell
-python -m http.server 8000
+npm install
+npm run dev
 ```
 
-브라우저에서 <http://localhost:8000>으로 접속합니다.
+터미널에 표시되는 로컬 주소로 접속합니다.
 
-## 이미지 추출
+프로덕션 빌드만 확인하려면 다음 명령을 사용합니다.
 
-필요 패키지를 설치합니다.
+```powershell
+npm run build
+npm run preview
+```
+
+## PDF 또는 문항 좌표 갱신
+
+좌표 생성 도구에 필요한 Python 패키지를 설치합니다.
 
 ```powershell
 python -m pip install -r requirements.txt
 ```
 
-프로젝트 루트에서 다음 명령을 실행합니다.
+원본 PDF에서 문항 좌표 인덱스를 다시 만듭니다.
 
 ```powershell
-python scripts/extract_answer_images.py
+python scripts/build_problem_index.py
 ```
 
-기본 입력 파일은 `answer_sheets/gojangee_gongsutwo.pdf`입니다. 다른 경로를
-사용하려면 `--pdf` 옵션을 지정합니다.
+브라우저가 읽을 PDF도 함께 갱신합니다.
 
 ```powershell
-python scripts/extract_answer_images.py --pdf answer_sheets/다른답지.pdf
+Copy-Item answer_sheets\gojangee_gongsutwo.pdf public\gojangee_gongsutwo.pdf -Force
 ```
 
-빠른 시험 추출은 문항 수를 제한할 수 있습니다.
-
-```powershell
-python scripts/extract_answer_images.py --max-problems 10
-```
-
-생성 결과:
-
-```text
-images/answers/ans_001.png
-images/solutions/sol_001.png
-data.json
-output/pdf/extraction-report.json
-```
-
-스크립트는 현재 답지의 2단 편집을 따라 왼쪽 단, 오른쪽 단, 다음 페이지
-순으로 문항 영역을 읽습니다. 해설이 다음 단이나 다음 페이지에 이어지면
-여러 영역을 세로로 연결해 하나의 해설 이미지로 저장합니다.
+PDF 내용이 바뀌면 파일 해시도 달라지므로 기존 브라우저 캐시는 자동으로
+사용되지 않습니다.
