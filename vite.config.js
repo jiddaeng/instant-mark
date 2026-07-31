@@ -7,6 +7,7 @@ export default defineConfig(({ mode }) => {
     base: isGitHubPages ? "/instant-mark/" : "/",
     build: {
       outDir: isGitHubPages ? "dist" : "dist/client",
+      target: "safari13",
     },
   };
 });

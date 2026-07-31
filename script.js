@@ -294,13 +294,32 @@ function toStoredBookRecord(book) {
 }
 
 async function sha256Hex(buffer) {
-  if (!crypto.subtle) {
+  if (typeof crypto === "undefined" || !crypto.subtle) {
     return null;
   }
   const digest = await crypto.subtle.digest("SHA-256", buffer);
-  return [...new Uint8Array(digest)]
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
+  const bytes = new Uint8Array(digest);
+  const parts = new Array(bytes.length);
+  for (let index = 0; index < bytes.length; index += 1) {
+    parts[index] = bytes[index].toString(16).padStart(2, "0");
+  }
+  return parts.join("");
+}
+
+function readBlobAsArrayBuffer(blob) {
+  if (typeof blob.arrayBuffer === "function") {
+    return blob.arrayBuffer();
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => {
+      reject(reader.error || new Error("파일을 읽을 수 없습니다."));
+    };
+    reader.onabort = () => reject(new Error("파일 읽기가 취소되었습니다."));
+    reader.readAsArrayBuffer(blob);
+  });
 }
 
 function fallbackBookId(file) {
@@ -381,7 +400,7 @@ async function importBook(file) {
   );
 
   try {
-    const hashBuffer = await file.arrayBuffer();
+    const hashBuffer = await readBlobAsArrayBuffer(file);
     const sha256 = await sha256Hex(hashBuffer);
     addConnectionLog(
       sha256
@@ -470,7 +489,7 @@ function connectStoredBook(book, { force = false } = {}) {
     );
 
     try {
-      const arrayBuffer = await book.blob.arrayBuffer();
+      const arrayBuffer = await readBlobAsArrayBuffer(book.blob);
       const sha256 = book.sha256 || (await sha256Hex(arrayBuffer));
       if (sha256 && !book.sha256) {
         book.sha256 = sha256;
@@ -823,8 +842,8 @@ async function writeCachedImage(key, blob) {
 function getPdfLibrary() {
   if (!pdfLibraryPromise) {
     pdfLibraryPromise = Promise.all([
-      import("pdfjs-dist"),
-      import("pdfjs-dist/build/pdf.worker.min.mjs?url"),
+      import("pdfjs-dist/legacy/build/pdf.mjs"),
+      import("pdfjs-dist/legacy/build/pdf.worker.min.mjs?url"),
     ]).then(([pdfjs, workerModule]) => {
       pdfjs.GlobalWorkerOptions.workerSrc = workerModule.default;
       return pdfjs;
@@ -844,7 +863,7 @@ function getPdfDocument(book) {
           return getDocument({ url: book.index.source.url }).promise;
         }
 
-        const data = new Uint8Array(await book.blob.arrayBuffer());
+        const data = new Uint8Array(await readBlobAsArrayBuffer(book.blob));
         return getDocument({ data }).promise;
       })
       .catch((error) => {
@@ -1422,7 +1441,13 @@ elements.addBookButton.addEventListener("click", () => {
 });
 
 elements.bookFileInput.addEventListener("change", () => {
-  const [file] = elements.bookFileInput.files;
+  const files = elements.bookFileInput.files;
+  const file =
+    files && files.length
+      ? typeof files.item === "function"
+        ? files.item(0)
+        : files[0]
+      : null;
   if (file) {
     void importBook(file);
   }

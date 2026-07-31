@@ -13,7 +13,7 @@ function median(values) {
   if (!values.length) {
     throw new Error("레이아웃 표본이 없습니다.");
   }
-  const sorted = [...values].sort((left, right) => left - right);
+  const sorted = values.slice().sort((left, right) => left - right);
   const middle = Math.floor(sorted.length / 2);
   return sorted.length % 2
     ? sorted[middle]
@@ -61,16 +61,18 @@ function inferLayout(headers, pageWidths) {
     samples.get(`${header.pageNumber % 2}:${header.column}`).push(header.x);
   });
 
-  const missing = [...samples.entries()]
+  const sampleEntries = Array.from(samples.entries());
+  const missing = sampleEntries
     .filter(([, values]) => !values.length)
     .map(([key]) => key);
   if (missing.length) {
     throw new Error(`2단 위치 표본이 부족합니다: ${missing.join(", ")}`);
   }
 
-  const columnX = Object.fromEntries(
-    [...samples.entries()].map(([key, values]) => [key, median(values)]),
-  );
+  const columnX = {};
+  sampleEntries.forEach(([key, values]) => {
+    columnX[key] = median(values);
+  });
   const pageWidth = median(pageWidths);
   const columnStep = median([
     columnX["0:1"] - columnX["0:0"],
@@ -276,7 +278,7 @@ export async function analyzeGojangeePdf({
     },
     range: {
       first: headers[0].number,
-      last: headers.at(-1).number,
+      last: headers[headers.length - 1].number,
       count: headers.length,
     },
     render: {
