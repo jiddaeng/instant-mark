@@ -7,7 +7,8 @@ import {
 import { analyzeGojangeePdf } from "./pdf-indexer.js";
 
 const RENDERER_VERSION = 1;
-const PDF_ANALYZER_VERSION = 1;
+const PDF_ANALYZER_VERSION = 2;
+const APP_BUILD = "2026.07.31-ios-pdf2";
 const CACHE_DB_NAME = "gojangee-render-cache";
 const CACHE_STORE_NAME = "problem-images";
 const DEFAULT_BOOK_ID = "builtin-gojangee";
@@ -232,7 +233,13 @@ function activateBook(book, { persist = true } = {}) {
     );
     setConnectionStatus("연결 완료");
     addConnectionLog(
-      `${book.builtIn ? "기본" : "저장된"} 연결 정보 사용: ${index.range.first}–${index.range.last}, ${index.range.count}문항`,
+      `${
+        book.builtIn
+          ? "기본"
+          : book.indexSource === "built-in-recovery"
+            ? "동일한 기본 PDF의 내장"
+            : "저장된"
+      } 연결 정보 사용: ${index.range.first}–${index.range.last}, ${index.range.count}문항`,
       "success",
     );
   } else {
@@ -276,20 +283,36 @@ function activateBook(book, { persist = true } = {}) {
 }
 
 function normalizeStoredBook(record) {
+  const usesBuiltInIndex =
+    !record.problemIndex &&
+    record.sha256 === problemIndex.source.sha256;
   return {
     ...record,
     builtIn: false,
     index:
       record.problemIndex ||
-      (record.sha256 === problemIndex.source.sha256 ? problemIndex : null),
+      (usesBuiltInIndex ? problemIndex : null),
+    indexSource: record.problemIndex
+      ? "analyzed"
+      : usesBuiltInIndex
+        ? "built-in-recovery"
+        : null,
   };
 }
 
 function toStoredBookRecord(book) {
-  const { builtIn: _builtIn, index, ...record } = book;
+  const {
+    builtIn: _builtIn,
+    index,
+    indexSource,
+    ...record
+  } = book;
   return {
     ...record,
-    problemIndex: index || record.problemIndex || null,
+    problemIndex:
+      indexSource === "built-in-recovery"
+        ? null
+        : index || record.problemIndex || null,
   };
 }
 
@@ -322,6 +345,57 @@ function readBlobAsArrayBuffer(blob) {
   });
 }
 
+function describeError(error) {
+  if (error === null) {
+    return "null 오류";
+  }
+  if (error === undefined) {
+    return "undefined 오류";
+  }
+
+  const name =
+    typeof error.name === "string" && error.name !== "Error"
+      ? error.name.trim()
+      : "";
+  const message =
+    typeof error.message === "string"
+      ? error.message.trim()
+      : String(error);
+  return name && !message.startsWith(name)
+    ? `${name}: ${message}`
+    : message || "알 수 없는 오류";
+}
+
+function getClientSummary() {
+  const userAgent = navigator.userAgent || "";
+  const safariVersion = userAgent.match(/Version\/([\d.]+)/)?.[1];
+  const iosVersion = userAgent.match(/OS ([\d_]+) like Mac OS X/)?.[1];
+  const isIPad =
+    /iPad/.test(userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const device = isIPad ? "iPad" : navigator.platform || "기기 미상";
+  const os = iosVersion ? `iPadOS ${iosVersion.replace(/_/g, ".")}` : null;
+  const browser = safariVersion ? `Safari ${safariVersion}` : "브라우저 버전 미상";
+  return [device, os, browser].filter(Boolean).join(" · ");
+}
+
+function logImportDiagnostics() {
+  addConnectionLog(`앱 ${APP_BUILD} · PDF.js 3.11.174`);
+  addConnectionLog(getClientSummary());
+  addConnectionLog(
+    [
+      `Worker ${typeof Worker === "function" ? "가능" : "없음"}`,
+      `FileReader ${typeof FileReader === "function" ? "가능" : "없음"}`,
+      `Blob.arrayBuffer ${
+        typeof Blob !== "undefined" &&
+        typeof Blob.prototype.arrayBuffer === "function"
+          ? "가능"
+          : "대체 경로"
+      }`,
+    ].join(" · "),
+  );
+}
+
 function fallbackBookId(file) {
   const value = `${file.name}:${file.size}:${file.lastModified}`;
   let hash = 2166136261;
@@ -333,23 +407,29 @@ function fallbackBookId(file) {
 }
 
 async function inspectPdf(arrayBuffer, { sourceHash, fileName }) {
+  addConnectionLog("1/4 PDF 엔진 불러오는 중…");
   const pdfjs = await getPdfLibrary();
-  addConnectionLog("PDF 엔진을 불러왔습니다.", "success");
+  addConnectionLog(
+    `1/4 PDF 엔진 준비 완료 · ${pdfjs.version || "버전 미상"}`,
+    "success",
+  );
+  addConnectionLog("2/4 PDF 문서 여는 중…");
   const loadingTask = pdfjs.getDocument({
     data: new Uint8Array(arrayBuffer),
+    isEvalSupported: false,
   });
   const pdfDocument = await loadingTask.promise;
   const pageCount = pdfDocument.numPages;
   const fingerprint = pdfDocument.fingerprints?.[0] || null;
   addConnectionLog(
-    `PDF 열기 완료: ${pageCount}쪽`,
+    `2/4 PDF 열기 완료 · ${pageCount}쪽`,
     "success",
   );
 
   let index = null;
   let analysisError = null;
   try {
-    addConnectionLog("고쟁이 2단 문항 구조 분석을 시작합니다.");
+    addConnectionLog("3/4 2단 문항 구조 분석을 시작합니다.");
     index = await analyzeGojangeePdf({
       pdfDocument,
       Util: pdfjs.Util,
@@ -367,9 +447,16 @@ async function inspectPdf(arrayBuffer, { sourceHash, fileName }) {
     );
   } catch (error) {
     analysisError = error;
-    addConnectionLog(`문항 연결 실패: ${error.message}`, "error");
+    addConnectionLog(`3/4 문항 연결 실패 · ${describeError(error)}`, "error");
   } finally {
-    await pdfDocument.destroy();
+    try {
+      await pdfDocument.destroy();
+    } catch (error) {
+      addConnectionLog(
+        `PDF 임시 작업 정리 경고 · ${describeError(error)}`,
+        "error",
+      );
+    }
   }
 
   return {
@@ -398,9 +485,14 @@ async function importBook(file) {
   addConnectionLog(
     `선택: ${file.name} · ${formatFileSize(file.size)}`,
   );
+  logImportDiagnostics();
 
+  let importStage = "파일 읽기";
   try {
+    addConnectionLog("파일 읽는 중…");
     const hashBuffer = await readBlobAsArrayBuffer(file);
+    addConnectionLog("파일 읽기 완료", "success");
+    importStage = "파일 식별값 계산";
     const sha256 = await sha256Hex(hashBuffer);
     addConnectionLog(
       sha256
@@ -408,6 +500,7 @@ async function importBook(file) {
         : "파일 식별값 대신 브라우저 기본값을 사용합니다.",
       "success",
     );
+    importStage = "PDF 열기 또는 문항 분석";
     const { pageCount, fingerprint, index, analysisError } =
       await inspectPdf(hashBuffer.slice(0), {
         sourceHash: sha256,
@@ -415,6 +508,14 @@ async function importBook(file) {
       });
     const id = sha256 ? `local-${sha256}` : fallbackBookId(file);
     const title = file.name.replace(/\.pdf$/i, "").trim() || "내 답지";
+    const usesBuiltInRecovery =
+      !index && sha256 === problemIndex.source.sha256;
+    if (usesBuiltInRecovery) {
+      addConnectionLog(
+        "분석은 실패했지만 기본 답지와 같은 파일이라 내장 연결 정보로 복구합니다.",
+        "success",
+      );
+    }
     const record = {
       id,
       title,
@@ -429,28 +530,45 @@ async function importBook(file) {
       blob: file,
       problemIndex: index,
       analysisVersion: PDF_ANALYZER_VERSION,
-      analysisStatus: index ? "connected" : "failed",
-      analysisMessage: analysisError?.message || null,
+      analysisStatus: index
+        ? "connected"
+        : usesBuiltInRecovery
+          ? "recovered"
+          : "failed",
+      analysisMessage: analysisError ? describeError(analysisError) : null,
       analysisAttemptedAt: Date.now(),
     };
 
+    importStage = "기기 저장소에 저장";
+    addConnectionLog("4/4 이 기기에 저장하는 중…");
     await saveStoredBook(record);
-    addConnectionLog("PDF와 연결 정보를 브라우저에 저장했습니다.", "success");
+    addConnectionLog("4/4 PDF와 연결 정보를 저장했습니다.", "success");
     const book = normalizeStoredBook(record);
     books.set(book.id, book);
     autoAnalysisAttempted.add(book.id);
     renderBookOptions();
     activateBook(book);
+    const hasUsableIndex = Boolean(book.index);
     setConnectionStatus(
-      index ? "연결 완료" : "확인 필요",
-      index ? "idle" : "error",
+      hasUsableIndex ? "연결 완료" : "확인 필요",
+      hasUsableIndex ? "idle" : "error",
     );
 
+    if (hasUsableIndex) {
+      elements.connectionPanel.open = false;
+    }
+
     if (analysisError) {
-      setBookMessage(
-        "PDF는 저장했지만 문항 구조를 연결하지 못했습니다. 로그를 확인해 주세요.",
-        true,
-      );
+      if (usesBuiltInRecovery) {
+        setBookMessage(
+          `${pageCount}쪽 · 기본 답지의 내장 연결 정보로 복구됨`,
+        );
+      } else {
+        setBookMessage(
+          "PDF는 저장했지만 문항 구조를 연결하지 못했습니다. 로그를 확인해 주세요.",
+          true,
+        );
+      }
     }
 
     if (navigator.storage?.persist) {
@@ -458,7 +576,10 @@ async function importBook(file) {
     }
   } catch (error) {
     console.error("답지 PDF 저장 실패:", error);
-    addConnectionLog(`PDF 저장 실패: ${error.message}`, "error");
+    addConnectionLog(
+      `PDF 처리 실패 [${importStage}] · ${describeError(error)}`,
+      "error",
+    );
     setConnectionStatus("실패", "error");
     setBookMessage(
       "PDF를 저장할 수 없습니다. 파일 또는 브라우저 저장 공간을 확인해 주세요.",
@@ -509,6 +630,7 @@ function connectStoredBook(book, { force = false } = {}) {
 
       if (index) {
         book.index = index;
+        book.indexSource = "analyzed";
         book.problemIndex = index;
         book.analysisVersion = PDF_ANALYZER_VERSION;
         book.analysisStatus = "connected";
@@ -523,13 +645,16 @@ function connectStoredBook(book, { force = false } = {}) {
         if (activeBook.id === book.id) {
           activateBook(book);
         }
+        elements.connectionPanel.open = false;
         return index;
       }
 
       book.analysisVersion = PDF_ANALYZER_VERSION;
       book.analysisStatus = "failed";
       book.analysisMessage =
-        analysisError?.message || "문항 구조를 연결하지 못했습니다.";
+        analysisError
+          ? describeError(analysisError)
+          : "문항 구조를 연결하지 못했습니다.";
       book.analysisAttemptedAt = Date.now();
       await saveStoredBook(toStoredBookRecord(book));
       setConnectionStatus("확인 필요", "error");
@@ -544,10 +669,10 @@ function connectStoredBook(book, { force = false } = {}) {
       console.error("저장된 PDF 연결 실패:", error);
       book.analysisVersion = PDF_ANALYZER_VERSION;
       book.analysisStatus = "failed";
-      book.analysisMessage = error.message;
+      book.analysisMessage = describeError(error);
       book.analysisAttemptedAt = Date.now();
       await saveStoredBook(toStoredBookRecord(book)).catch(() => {});
-      addConnectionLog(`PDF 연결 실패: ${error.message}`, "error");
+      addConnectionLog(`PDF 연결 실패: ${describeError(error)}`, "error");
       setConnectionStatus("실패", "error");
       if (activeBook.id === book.id) {
         setBookMessage("저장된 PDF를 분석할 수 없습니다.", true);
@@ -842,11 +967,15 @@ async function writeCachedImage(key, blob) {
 function getPdfLibrary() {
   if (!pdfLibraryPromise) {
     pdfLibraryPromise = Promise.all([
-      import("pdfjs-dist/legacy/build/pdf.mjs"),
-      import("pdfjs-dist/legacy/build/pdf.worker.min.mjs?url"),
+      import("pdfjs-dist/legacy/build/pdf.js"),
+      import("pdfjs-dist/legacy/build/pdf.worker.min.js?url"),
     ]).then(([pdfjs, workerModule]) => {
-      pdfjs.GlobalWorkerOptions.workerSrc = workerModule.default;
-      return pdfjs;
+      const library =
+        pdfjs.default?.getDocument && !pdfjs.getDocument
+          ? pdfjs.default
+          : pdfjs;
+      library.GlobalWorkerOptions.workerSrc = workerModule.default;
+      return library;
     });
   }
   return pdfLibraryPromise;
@@ -860,11 +989,14 @@ function getPdfDocument(book) {
     const documentPromise = getPdfLibrary()
       .then(async ({ getDocument }) => {
         if (book.builtIn) {
-          return getDocument({ url: book.index.source.url }).promise;
+          return getDocument({
+            url: book.index.source.url,
+            isEvalSupported: false,
+          }).promise;
         }
 
         const data = new Uint8Array(await readBlobAsArrayBuffer(book.blob));
-        return getDocument({ data }).promise;
+        return getDocument({ data, isEvalSupported: false }).promise;
       })
       .catch((error) => {
         if (pdfDocumentState.bookId === book.id) {

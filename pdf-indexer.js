@@ -24,6 +24,22 @@ function rounded(value) {
   return Math.round(value * 1000) / 1000;
 }
 
+function describePageError(error) {
+  if (error === null) {
+    return "null 오류";
+  }
+  if (error === undefined) {
+    return "undefined 오류";
+  }
+  const name =
+    typeof error.name === "string" && error.name !== "Error"
+      ? `${error.name}: `
+      : "";
+  const message =
+    typeof error.message === "string" ? error.message : String(error);
+  return `${name}${message || "알 수 없는 오류"}`;
+}
+
 function findLongestProblemRun(candidates) {
   let best = [];
 
@@ -88,7 +104,10 @@ function inferLayout(headers, pageWidths) {
   }
 
   return {
-    firstContentPage: Math.min(...headers.map((header) => header.pageNumber)),
+    firstContentPage: headers.reduce(
+      (first, header) => Math.min(first, header.pageNumber),
+      headers[0].pageNumber,
+    ),
     columnX,
     columnWidth,
   };
@@ -125,9 +144,18 @@ export async function analyzeGojangeePdf({
     pageNumber <= pdfDocument.numPages;
     pageNumber += 1
   ) {
-    const page = await pdfDocument.getPage(pageNumber);
-    const viewport = page.getViewport({ scale: 1 });
-    const textContent = await page.getTextContent();
+    let page;
+    let viewport;
+    let textContent;
+    try {
+      page = await pdfDocument.getPage(pageNumber);
+      viewport = page.getViewport({ scale: 1 });
+      textContent = await page.getTextContent();
+    } catch (error) {
+      throw new Error(
+        `${pageNumber}/${pdfDocument.numPages}쪽 텍스트 읽기 실패 · ${describePageError(error)}`,
+      );
+    }
     pageWidths.push(viewport.width);
     pageHeights.set(pageNumber, viewport.height);
 
