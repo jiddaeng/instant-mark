@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+tmp/
+venv/
+dist/
+answer_sheets/
+output/
+scripts/
+requirements.txt

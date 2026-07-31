@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="고쟁이 공통수학 2 문항 번호로 정답과 해설을 빠르게 확인하세요."
+    />
+    <meta name="theme-color" content="#1d2a27" />
+    <title>고쟁이 빠른 채점</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%2316211f'/%3E%3Cpath d='M42 25c-2-5-6-8-12-8-9 0-15 7-15 15s6 15 15 15c5 0 10-2 13-6V30H30v7h6v2c-2 1-3 2-6 2-5 0-8-4-8-9s3-9 8-9c3 0 5 2 6 5z' fill='%23fffefa'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="site-header">
+        <a class="brand" href="./" aria-label="고쟁이 빠른 채점 홈">
+          <span class="brand-mark" aria-hidden="true">G</span>
+          <span class="brand-copy">
+            <strong>고쟁이 빠른 채점</strong>
+            <small>공통수학 2</small>
+          </span>
+        </a>
+        <span class="range-badge">1—724</span>
+      </header>
+
+      <main>
+        <form id="problem-form" novalidate>
+          <div class="form-label-row">
+            <label for="problem-number">문항 번호</label>
+            <button
+              id="keypad-toggle"
+              class="keypad-toggle"
+              type="button"
+              aria-expanded="false"
+              aria-controls="number-keypad"
+              disabled
+            >
+              키패드
+            </button>
+          </div>
+          <div class="input-row">
+            <div class="number-control">
+              <button
+                id="decrement-button"
+                class="step-button"
+                type="button"
+                aria-label="이전 문항"
+                disabled
+              >
+                −
+              </button>
+              <input
+                id="problem-number"
+                name="problem-number"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                autocomplete="off"
+                enterkeyhint="search"
+                maxlength="3"
+                placeholder="번호"
+                aria-describedby="form-message"
+                disabled
+              />
+              <button
+                id="increment-button"
+                class="step-button"
+                type="button"
+                aria-label="다음 문항"
+                disabled
+              >
+                +
+              </button>
+            </div>
+            <button id="submit-button" class="submit-button" type="submit" disabled>
+              확인
+            </button>
+          </div>
+          <p id="form-message" class="form-message" role="alert"></p>
+          <div
+            id="number-keypad"
+            class="number-keypad"
+            role="group"
+            aria-label="문항 번호 키패드"
+            hidden
+          >
+            <button type="button" class="keypad-key" data-digit="1">1</button>
+            <button type="button" class="keypad-key" data-digit="2">2</button>
+            <button type="button" class="keypad-key" data-digit="3">3</button>
+            <button type="button" class="keypad-key" data-digit="4">4</button>
+            <button type="button" class="keypad-key" data-digit="5">5</button>
+            <button type="button" class="keypad-key" data-digit="6">6</button>
+            <button type="button" class="keypad-key" data-digit="7">7</button>
+            <button type="button" class="keypad-key" data-digit="8">8</button>
+            <button type="button" class="keypad-key" data-digit="9">9</button>
+            <button
+              type="button"
+              class="keypad-key keypad-action"
+              data-action="clear"
+            >
+              지움
+            </button>
+            <button type="button" class="keypad-key" data-digit="0">0</button>
+            <button
+              type="button"
+              class="keypad-key keypad-action"
+              data-action="backspace"
+              aria-label="한 글자 지우기"
+            >
+              ⌫
+            </button>
+          </div>
+        </form>
+
+        <section
+          id="result-section"
+          class="result-section"
+          aria-live="polite"
+          hidden
+        >
+          <h2 class="sr-only">문항 <span id="result-number">001</span> 결과</h2>
+
+          <div id="answer-media" class="media-frame answer-media is-loading">
+            <div class="image-loader" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <img id="answer-image" alt="" />
+            <p id="answer-error" class="media-error" role="alert" hidden>
+              정답 이미지를 불러올 수 없습니다.
+            </p>
+          </div>
+
+          <button
+            id="solution-toggle"
+            class="solution-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="solution-panel"
+          >
+            <span id="solution-toggle-text">해설 보기</span>
+            <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m7 10 5 5 5-5"></path>
+            </svg>
+          </button>
+
+          <div id="solution-panel" class="solution-panel" hidden>
+            <div id="solution-media" class="media-frame solution-media is-loading">
+              <div class="image-loader" aria-hidden="true">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <img id="solution-image" alt="" loading="lazy" />
+              <p id="solution-error" class="media-error" role="alert" hidden>
+                해설 이미지를 불러올 수 없습니다.
+              </p>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
