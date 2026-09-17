@@ -313,6 +313,10 @@ function activateBook(book, { persist = true } = {}) {
   resetProblemView();
   activeBook = book;
   const rootIndex = book.index;
+  elements.answerImage.classList.toggle(
+    "is-compact-answer",
+    Boolean(rootIndex?.sections?.length),
+  );
   activeSectionId =
     book.activeSectionId || rootIndex?.default_section_id || null;
   setSectionSelectorOpen(false);

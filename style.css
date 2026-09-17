@@ -588,7 +588,7 @@ main {
   transition: opacity 150ms ease;
 }
 
-#answer-image {
+#answer-image.is-compact-answer {
   width: min(25%, 133.75px);
 }
 
