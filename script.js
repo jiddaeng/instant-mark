@@ -7,8 +7,8 @@ import {
 import { analyzeGojangeePdf } from "./pdf-indexer.js";
 
 const RENDERER_VERSION = 1;
-const PDF_ANALYZER_VERSION = 2;
-const APP_BUILD = "2026.07.31-ios-pdf2";
+const PDF_ANALYZER_VERSION = 3;
+const APP_BUILD = "2026.09.17-olympus";
 const CACHE_DB_NAME = "gojangee-render-cache";
 const CACHE_STORE_NAME = "problem-images";
 const DEFAULT_BOOK_ID = "builtin-gojangee";
@@ -41,6 +41,13 @@ const elements = {
   removeBookButton: document.querySelector("#remove-book-button"),
   connectionLogList: document.querySelector("#connection-log-list"),
   connectionLogStatus: document.querySelector("#connection-log-status"),
+  sectionControl: document.querySelector("#section-control"),
+  sectionSelector: document.querySelector("#section-selector"),
+  sectionToggle: document.querySelector("#section-toggle"),
+  activeUnitLabel: document.querySelector("#active-unit-label"),
+  activeCategoryLabel: document.querySelector("#active-category-label"),
+  unitOptions: document.querySelector("#unit-options"),
+  categoryOptions: document.querySelector("#category-options"),
   form: document.querySelector("#problem-form"),
   input: document.querySelector("#problem-number"),
   decrementButton: document.querySelector("#decrement-button"),
@@ -86,6 +93,7 @@ const analysisInFlight = new Map();
 const autoAnalysisAttempted = new Set();
 
 let activeProblem = null;
+let activeSectionId = null;
 let solutionLoadedFor = null;
 let formEnabled = false;
 let activeBook = defaultBook;
@@ -147,7 +155,98 @@ function formatFileSize(bytes) {
 }
 
 function getBookIndex(book = activeBook) {
-  return book?.index || null;
+  const rootIndex = book?.index || null;
+  if (!rootIndex?.sections?.length) {
+    return rootIndex;
+  }
+
+  const section =
+    rootIndex.sections.find((item) => item.id === activeSectionId) ||
+    rootIndex.sections.find(
+      (item) => item.id === rootIndex.default_section_id,
+    ) ||
+    rootIndex.sections[0];
+  return {
+    ...rootIndex,
+    ...section,
+    section_id: section.id,
+  };
+}
+
+function createRadioChip({ name, value, label, checked = false }) {
+  const wrapper = document.createElement("label");
+  wrapper.className = "radio-chip";
+  const input = document.createElement("input");
+  input.type = "radio";
+  input.name = name;
+  input.value = value;
+  input.checked = checked;
+  const text = document.createElement("span");
+  text.textContent = label;
+  wrapper.append(input, text);
+  return wrapper;
+}
+
+function setSectionSelectorOpen(open) {
+  const canOpen = !elements.sectionControl.hidden;
+  const nextOpen = Boolean(open && canOpen);
+  elements.sectionToggle.setAttribute("aria-expanded", String(nextOpen));
+  elements.sectionSelector.setAttribute("aria-hidden", String(!nextOpen));
+  elements.sectionSelector.inert = !nextOpen;
+  elements.sectionControl.classList.toggle("is-open", nextOpen);
+}
+
+function renderSectionOptions(rootIndex = activeBook?.index) {
+  const sections = rootIndex?.sections || [];
+  if (!sections.length) {
+    setSectionSelectorOpen(false);
+    elements.sectionControl.hidden = true;
+    elements.unitOptions.replaceChildren();
+    elements.categoryOptions.replaceChildren();
+    elements.activeUnitLabel.textContent = "";
+    elements.activeCategoryLabel.textContent = "";
+    activeSectionId = null;
+    return;
+  }
+
+  const activeSection =
+    sections.find((section) => section.id === activeSectionId) || sections[0];
+  activeSectionId = activeSection.id;
+  elements.activeUnitLabel.textContent =
+    `${activeSection.unit_id} ${activeSection.unit_title}`;
+  elements.activeCategoryLabel.textContent = activeSection.category_label;
+
+  const units = [];
+  sections.forEach((section) => {
+    if (!units.some((unit) => unit.id === section.unit_id)) {
+      units.push({ id: section.unit_id, title: section.unit_title });
+    }
+  });
+  elements.unitOptions.replaceChildren(
+    ...units.map((unit) =>
+      createRadioChip({
+        name: "olympus-unit",
+        value: unit.id,
+        label: `${unit.id} ${unit.title}`,
+        checked: unit.id === activeSection.unit_id,
+      }),
+    ),
+  );
+
+  const unitSections = sections.filter(
+    (section) => section.unit_id === activeSection.unit_id,
+  );
+  elements.categoryOptions.replaceChildren(
+    ...unitSections.map((section) =>
+      createRadioChip({
+        name: "olympus-category",
+        value: section.id,
+        label: section.category_label,
+        checked: section.id === activeSection.id,
+      }),
+    ),
+  );
+  elements.sectionControl.hidden = false;
 }
 
 function renderBookOptions() {
@@ -213,6 +312,11 @@ function activateBook(book, { persist = true } = {}) {
   resetPdfDocument();
   resetProblemView();
   activeBook = book;
+  const rootIndex = book.index;
+  activeSectionId =
+    book.activeSectionId || rootIndex?.default_section_id || null;
+  setSectionSelectorOpen(false);
+  renderSectionOptions(rootIndex);
   elements.bookSelect.value = book.id;
   elements.activeBookName.textContent = book.title;
   elements.removeBookButton.hidden = book.builtIn;
@@ -223,7 +327,9 @@ function activateBook(book, { persist = true } = {}) {
   if (index) {
     firstProblem = index.range.first;
     lastProblem = index.range.last;
-    elements.rangeBadge.textContent = `${firstProblem}—${lastProblem}`;
+    elements.rangeBadge.textContent = index.section_id
+      ? `${index.unit_id} · ${index.category_label} · ${firstProblem}—${lastProblem}`
+      : `${firstProblem}—${lastProblem}`;
     elements.form.hidden = false;
     setFormEnabled(true);
     setBookMessage(
@@ -239,7 +345,11 @@ function activateBook(book, { persist = true } = {}) {
           : book.indexSource === "built-in-recovery"
             ? "동일한 기본 PDF의 내장"
             : "저장된"
-      } 연결 정보 사용: ${index.range.first}–${index.range.last}, ${index.range.count}문항`,
+      } 연결 정보 사용: ${
+        book.index.sections?.length
+          ? `${book.index.sections.length}개 풀이 묶음, 총 ${book.index.range.count}문항`
+          : `${index.range.first}–${index.range.last}, ${index.range.count}문항`
+      }`,
       "success",
     );
   } else {
@@ -280,6 +390,41 @@ function activateBook(book, { persist = true } = {}) {
       // The library still works when localStorage is unavailable.
     }
   }
+}
+
+function activateSection(
+  sectionId,
+  { problemNumber = null, preserveSolution = false } = {},
+) {
+  const sections = activeBook?.index?.sections || [];
+  const section = sections.find((item) => item.id === sectionId);
+  if (!section) {
+    return false;
+  }
+
+  const keepSolutionOpen =
+    preserveSolution &&
+    elements.solutionToggle.getAttribute("aria-expanded") === "true";
+  activeSectionId = section.id;
+  activeBook.activeSectionId = section.id;
+  resetProblemView();
+  renderSectionOptions(activeBook.index);
+
+  const index = getBookIndex();
+  firstProblem = index.range.first;
+  lastProblem = index.range.last;
+  elements.rangeBadge.textContent =
+    `${index.unit_id} · ${index.category_label} · ${firstProblem}—${lastProblem}`;
+  elements.form.hidden = false;
+  setFormEnabled(true);
+
+  if (problemNumber !== null) {
+    if (keepSolutionOpen) {
+      elements.solutionToggle.setAttribute("aria-expanded", "true");
+    }
+    selectProblem(problemNumber);
+  }
+  return true;
 }
 
 function normalizeStoredBook(record) {
@@ -786,14 +931,23 @@ function updateStepButtons() {
   const value = Number(elements.input.value);
   const hasNumber = /^\d+$/.test(elements.input.value);
   const currentProblem = hasNumber ? value : activeProblem;
+  const sections = activeBook?.index?.sections || [];
+  const sectionIndex = sections.findIndex(
+    (section) => section.id === activeSectionId,
+  );
+  const hasPreviousSection = sectionIndex > 0;
+  const hasNextSection =
+    sectionIndex >= 0 && sectionIndex < sections.length - 1;
 
   elements.decrementButton.disabled =
     !formEnabled ||
     currentProblem === null ||
-    currentProblem <= firstProblem;
+    (currentProblem <= firstProblem && !hasPreviousSection);
   elements.incrementButton.disabled =
     !formEnabled ||
-    (currentProblem !== null && currentProblem >= lastProblem);
+    (currentProblem !== null &&
+      currentProblem >= lastProblem &&
+      !hasNextSection);
 }
 
 function setMessage(message = "") {
@@ -882,6 +1036,7 @@ function cacheKey(book, problemNumber, kind) {
   const index = getBookIndex(book);
   const namespace = [
     index.source.sha256,
+    index.section_id || "default",
     `renderer-${RENDERER_VERSION}`,
     `scale-${index.render.scale}`,
   ].join(":");
@@ -1367,8 +1522,11 @@ async function displayProblemImage(book, problemNumber, kind) {
 }
 
 function showProblem(problemNumber) {
-  const paddedNumber = String(problemNumber).padStart(3, "0");
+  const numberWidth = getBookIndex()?.number_width || 3;
+  const paddedNumber = String(problemNumber).padStart(numberWidth, "0");
   const book = activeBook;
+  const keepSolutionOpen =
+    elements.solutionToggle.getAttribute("aria-expanded") === "true";
   activeProblem = problemNumber;
   resetSolution();
   clearMediaImage("answer");
@@ -1379,12 +1537,48 @@ function showProblem(problemNumber) {
   updateStepButtons();
   void displayProblemImage(book, problemNumber, "answer");
 
+  if (keepSolutionOpen) {
+    setSolutionOpen(true);
+  }
+
   if (window.matchMedia("(max-width: 640px)").matches) {
     window.requestAnimationFrame(() => {
       elements.resultSection.scrollIntoView({
         behavior: "smooth",
         block: "start",
       });
+    });
+  }
+}
+
+function setSolutionOpen(willOpen) {
+  if (!activeProblem) {
+    return;
+  }
+
+  elements.solutionToggle.setAttribute("aria-expanded", String(willOpen));
+  elements.solutionToggleText.textContent = willOpen
+    ? "해설 숨기기"
+    : "해설 보기";
+  elements.solutionPanel.hidden = !willOpen;
+
+  if (willOpen && solutionLoadedFor !== activeProblem) {
+    const requestedBook = activeBook;
+    const requestedProblem = activeProblem;
+    solutionLoadedFor = requestedProblem;
+    elements.solutionImage.alt = `${requestedProblem}번 문항 해설`;
+    void displayProblemImage(
+      requestedBook,
+      requestedProblem,
+      "solution",
+    ).then((loaded) => {
+      if (
+        !loaded &&
+        activeBook.id === requestedBook.id &&
+        activeProblem === requestedProblem
+      ) {
+        solutionLoadedFor = null;
+      }
     });
   }
 }
@@ -1419,11 +1613,31 @@ function stepProblem(delta) {
     return;
   }
 
-  const nextProblem = Math.min(
-    lastProblem,
-    Math.max(firstProblem, baseValue + delta),
-  );
-  selectProblem(nextProblem);
+  const requestedProblem = baseValue + delta;
+  if (requestedProblem >= firstProblem && requestedProblem <= lastProblem) {
+    selectProblem(requestedProblem);
+    return;
+  }
+
+  const sections = activeBook?.index?.sections || [];
+  if (sections.length) {
+    const sectionIndex = sections.findIndex(
+      (section) => section.id === activeSectionId,
+    );
+    const targetSection = sections[sectionIndex + (delta > 0 ? 1 : -1)];
+    if (targetSection) {
+      activateSection(targetSection.id, {
+        problemNumber:
+          delta > 0
+            ? targetSection.range.first
+            : targetSection.range.last,
+        preserveSolution: true,
+      });
+      return;
+    }
+  }
+
+  selectProblem(delta > 0 ? lastProblem : firstProblem);
 }
 
 function validateInput(value) {
@@ -1470,6 +1684,39 @@ elements.form.addEventListener("submit", (event) => {
     void navigator.storage.persist();
   }
   selectProblem(result.problemNumber);
+});
+
+elements.unitOptions.addEventListener("change", (event) => {
+  const input = event.target.closest('input[name="olympus-unit"]');
+  if (!input) {
+    return;
+  }
+
+  const sections = activeBook?.index?.sections || [];
+  const currentCategory = getBookIndex()?.category_id;
+  const target =
+    sections.find(
+      (section) =>
+        section.unit_id === input.value &&
+        section.category_id === currentCategory,
+    ) || sections.find((section) => section.unit_id === input.value);
+  if (target) {
+    activateSection(target.id);
+  }
+});
+
+elements.categoryOptions.addEventListener("change", (event) => {
+  const input = event.target.closest('input[name="olympus-category"]');
+  if (input) {
+    activateSection(input.value);
+    setSectionSelectorOpen(false);
+  }
+});
+
+elements.sectionToggle.addEventListener("click", () => {
+  const willOpen =
+    elements.sectionToggle.getAttribute("aria-expanded") !== "true";
+  setSectionSelectorOpen(willOpen);
 });
 
 elements.input.addEventListener("input", syncInputState);
@@ -1521,31 +1768,7 @@ elements.solutionToggle.addEventListener("click", () => {
 
   const willOpen =
     elements.solutionToggle.getAttribute("aria-expanded") !== "true";
-  elements.solutionToggle.setAttribute("aria-expanded", String(willOpen));
-  elements.solutionToggleText.textContent = willOpen
-    ? "해설 숨기기"
-    : "해설 보기";
-  elements.solutionPanel.hidden = !willOpen;
-
-  if (willOpen && solutionLoadedFor !== activeProblem) {
-    const requestedBook = activeBook;
-    const requestedProblem = activeProblem;
-    solutionLoadedFor = requestedProblem;
-    elements.solutionImage.alt = `${requestedProblem}번 문항 해설`;
-    void displayProblemImage(
-      requestedBook,
-      requestedProblem,
-      "solution",
-    ).then((loaded) => {
-      if (
-        !loaded &&
-        activeBook.id === requestedBook.id &&
-        activeProblem === requestedProblem
-      ) {
-        solutionLoadedFor = null;
-      }
-    });
-  }
+  setSolutionOpen(willOpen);
 });
 
 elements.bookSelect.addEventListener("change", () => {

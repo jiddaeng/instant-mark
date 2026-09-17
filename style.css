@@ -247,6 +247,146 @@ main {
   padding-top: 12px;
 }
 
+.section-control {
+  margin-bottom: 20px;
+}
+
+.section-summary {
+  display: flex;
+  min-height: 60px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.section-summary-text {
+  min-width: 0;
+}
+
+.section-summary-text p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.65;
+}
+
+.section-summary-text span {
+  color: var(--ink);
+}
+
+.section-toggle {
+  display: flex;
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 0 12px;
+  align-items: center;
+  gap: 5px;
+  color: var(--green);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.section-toggle .chevron {
+  transition: transform 180ms ease;
+}
+
+.section-toggle[aria-expanded="true"] .chevron {
+  transform: rotate(180deg);
+}
+
+.section-selector {
+  display: grid;
+  gap: 12px;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition:
+    max-height 220ms ease,
+    margin-top 220ms ease,
+    opacity 160ms ease,
+    transform 220ms ease;
+}
+
+.section-control.is-open .section-selector {
+  max-height: 180px;
+  margin-top: 12px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.section-selector fieldset {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+
+.section-selector legend {
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.radio-options {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.radio-chip {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.radio-chip input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.radio-chip span {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 15px;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.radio-chip input:checked + span {
+  color: #fff;
+  background: var(--green);
+  border-color: var(--green);
+}
+
+.radio-chip input:focus-visible + span {
+  outline: 3px solid rgba(8, 122, 89, 0.18);
+  outline-offset: 2px;
+}
+
+.unit-options .radio-chip span {
+  min-width: 50px;
+  padding-inline: 12px;
+  font-size: 16px;
+}
+
 .form-label-row {
   display: flex;
   min-height: 34px;
@@ -448,6 +588,10 @@ main {
   transition: opacity 150ms ease;
 }
 
+#answer-image {
+  width: min(25%, 133.75px);
+}
+
 .media-frame.is-loading img {
   opacity: 0;
 }
@@ -543,6 +687,7 @@ main {
 }
 
 .step-button:focus-visible,
+.section-toggle:focus-visible,
 .utility-panel > summary:focus-visible,
 .book-add-button:focus-visible,
 .book-actions button:focus-visible,

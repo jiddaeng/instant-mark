@@ -78,6 +78,49 @@
       </div>
 
       <main>
+        <section id="section-control" class="section-control" hidden>
+          <div class="section-summary">
+            <div class="section-summary-text" aria-live="polite">
+              <p>단원: <span id="active-unit-label"></span></p>
+              <p>문항 유형: <span id="active-category-label"></span></p>
+            </div>
+            <button
+              id="section-toggle"
+              class="section-toggle"
+              type="button"
+              aria-expanded="false"
+              aria-controls="section-selector"
+            >
+              변경
+              <span class="chevron" aria-hidden="true">⌄</span>
+            </button>
+          </div>
+          <div
+            id="section-selector"
+            class="section-selector"
+            aria-hidden="true"
+            inert
+          >
+            <fieldset>
+              <legend>단원</legend>
+              <div
+                id="unit-options"
+                class="radio-options unit-options"
+                role="radiogroup"
+                aria-label="단원 선택"
+              ></div>
+            </fieldset>
+            <fieldset>
+              <legend>문항 유형</legend>
+              <div
+                id="category-options"
+                class="radio-options category-options"
+                role="radiogroup"
+                aria-label="문항 유형 선택"
+              ></div>
+            </fieldset>
+          </div>
+        </section>
         <form id="problem-form" novalidate>
           <div class="form-label-row">
             <label for="problem-number">문항 번호</label>
