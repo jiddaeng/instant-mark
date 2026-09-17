@@ -1,4 +1,5 @@
 import problemIndex from "./problem-index.json";
+import olympusIndex from "./olympus-index.json";
 import {
   deleteStoredBook,
   listStoredBooks,
@@ -12,6 +13,7 @@ const APP_BUILD = "2026.09.17-olympus";
 const CACHE_DB_NAME = "gojangee-render-cache";
 const CACHE_STORE_NAME = "problem-images";
 const DEFAULT_BOOK_ID = "builtin-gojangee";
+const OLYMPUS_BOOK_ID = "builtin-olympus-common-math-2";
 const ACTIVE_BOOK_STORAGE_KEY = "instant-mark-active-book";
 const MAX_MEMORY_IMAGES = 12;
 const MAX_RENDERED_PAGES = 2;
@@ -25,8 +27,21 @@ const defaultBook = {
   blob: null,
   index: problemIndex,
   builtIn: true,
+  builtInOrder: 0,
 };
-const books = new Map([[DEFAULT_BOOK_ID, defaultBook]]);
+const olympusBook = {
+  id: OLYMPUS_BOOK_ID,
+  title: "올림포스 유형편 공통수학 2",
+  fileName: "olympus_common_math_2_answers.pdf",
+  pageCount: olympusIndex.source.page_count,
+  sha256: olympusIndex.source.sha256,
+  blob: null,
+  index: olympusIndex,
+  builtIn: true,
+  builtInOrder: 1,
+};
+const builtInBooks = [defaultBook, olympusBook];
+const books = new Map(builtInBooks.map((book) => [book.id, book]));
 
 const elements = {
   bookPanel: document.querySelector("#book-panel"),
@@ -255,6 +270,9 @@ function renderBookOptions() {
 
   [...books.values()]
     .sort((left, right) => {
+      if (left.builtIn && right.builtIn) {
+        return (left.builtInOrder || 0) - (right.builtInOrder || 0);
+      }
       if (left.builtIn) {
         return -1;
       }
@@ -432,18 +450,16 @@ function activateSection(
 }
 
 function normalizeStoredBook(record) {
-  const usesBuiltInIndex =
-    !record.problemIndex &&
-    record.sha256 === problemIndex.source.sha256;
+  const recoveredIndex = !record.problemIndex
+    ? builtInBooks.find((book) => book.sha256 === record.sha256)?.index || null
+    : null;
   return {
     ...record,
     builtIn: false,
-    index:
-      record.problemIndex ||
-      (usesBuiltInIndex ? problemIndex : null),
+    index: record.problemIndex || recoveredIndex,
     indexSource: record.problemIndex
       ? "analyzed"
-      : usesBuiltInIndex
+      : recoveredIndex
         ? "built-in-recovery"
         : null,
   };
@@ -657,8 +673,9 @@ async function importBook(file) {
       });
     const id = sha256 ? `local-${sha256}` : fallbackBookId(file);
     const title = file.name.replace(/\.pdf$/i, "").trim() || "내 답지";
-    const usesBuiltInRecovery =
-      !index && sha256 === problemIndex.source.sha256;
+    const usesBuiltInRecovery = Boolean(
+      !index && builtInBooks.some((book) => book.sha256 === sha256),
+    );
     if (usesBuiltInRecovery) {
       addConnectionLog(
         "분석은 실패했지만 기본 답지와 같은 파일이라 내장 연결 정보로 복구합니다.",
@@ -843,7 +860,7 @@ function openActiveBook() {
   }
 
   const pdfUrl = activeBook.builtIn
-    ? new URL(problemIndex.source.url, window.location.href).href
+    ? new URL(activeBook.index.source.url, window.location.href).href
     : URL.createObjectURL(activeBook.blob);
   const anchor = document.createElement("a");
   anchor.href = pdfUrl;
