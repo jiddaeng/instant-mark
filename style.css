@@ -1,12 +1,13 @@
 :root {
-  --ink: #14213d;
-  --muted: #62708c;
-  --paper: #ffffff;
-  --surface: #ffffff;
-  --line: #cddaf1;
-  --blue: #1d5fd6;
-  --blue-dark: #1648a8;
-  --error: #c44539;
+  color-scheme: dark;
+  --ink: #e6ecf7;
+  --muted: #8f9bb3;
+  --paper: #0e1525;
+  --surface: #172033;
+  --line: #2a3650;
+  --blue: #3d7fe8;
+  --blue-dark: #2f6ad0;
+  --error: #ff6b5e;
   --content-width: 720px;
 }
 
@@ -102,7 +103,7 @@ button {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 14px;
-  box-shadow: 0 12px 34px rgba(20, 33, 61, 0.12);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.45);
 }
 
 .book-select-row {
@@ -129,7 +130,7 @@ button {
 
 #book-select:focus {
   border-color: var(--blue);
-  outline: 3px solid rgba(29, 95, 214, 0.1);
+  outline: 3px solid rgba(61, 127, 232, 0.25);
 }
 
 #book-select:disabled {
@@ -230,7 +231,7 @@ button {
 }
 
 #connection-log-list li::marker {
-  color: #a3b1cc;
+  color: #5a6784;
 }
 
 #connection-log-list li[data-level="success"] {
@@ -377,7 +378,7 @@ main {
 }
 
 .radio-chip input:focus-visible + span {
-  outline: 3px solid rgba(29, 95, 214, 0.18);
+  outline: 3px solid rgba(61, 127, 232, 0.35);
   outline-offset: 2px;
 }
 
@@ -436,7 +437,7 @@ main {
 
 .number-control:focus-within {
   border-color: var(--blue);
-  box-shadow: 0 0 0 3px rgba(29, 95, 214, 0.1);
+  box-shadow: 0 0 0 3px rgba(61, 127, 232, 0.25);
 }
 
 .step-button {
@@ -459,11 +460,11 @@ main {
 
 .step-button:hover:not(:disabled) {
   color: var(--blue);
-  background: #edf3ff;
+  background: #1e2b45;
 }
 
 .step-button:disabled {
-  color: #c3cde0;
+  color: #46526b;
   cursor: default;
 }
 
@@ -480,7 +481,7 @@ main {
 }
 
 #problem-number::placeholder {
-  color: #a7b4cc;
+  color: #5f6c87;
   font-weight: 600;
 }
 
@@ -543,8 +544,8 @@ main {
 .keypad-key:hover:not(:disabled),
 .keypad-key:active:not(:disabled) {
   color: var(--blue);
-  background: #edf3ff;
-  border-color: #b3c8ee;
+  background: #1e2b45;
+  border-color: #3a5288;
 }
 
 .keypad-key:disabled {
@@ -584,6 +585,7 @@ main {
   display: block;
   width: min(100%, 535px);
   height: auto;
+  border-radius: 8px;
   opacity: 1;
   transition: opacity 150ms ease;
 }
@@ -695,7 +697,7 @@ main {
 .keypad-key:focus-visible,
 .submit-button:focus-visible,
 .solution-toggle:focus-visible {
-  outline: 3px solid rgba(29, 95, 214, 0.22);
+  outline: 3px solid rgba(61, 127, 232, 0.4);
   outline-offset: 2px;
 }
 
